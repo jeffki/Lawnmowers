@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>LawnMowers</title>
+    <style>
+        .Lawn {
+            height:20px;
+            width:20px;
+            background-color:darkseagreen;
+            padding:0;
+            margin:0;
+            border:0;
+        }
+        td {
+            padding: 0;
+            margin: 0;
+            border:0;
+        }
+        table {
+            border: 0;
+            border-collapse: collapse;
+        }
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () { Main(); });
+
+        var LawnMower = function () {
+            this.lawn = new Array(4);
+
+            for (var x = 0; x < 4; x++) {
+                this.lawn[x] = new Array(4); //Convert Lawn into 2 dimensional array
+                for (var y = 0; y < 4; y++) {
+                    this.lawn[x][y] = "Uncut";
+                }
+            }
+
+            this.score = 1;
+            this.DNA= "";
+            this.CurrentXPosition= 0;
+            this.CurrentYPosition= 0,
+            this.TurnLeft= function () {
+                switch (this.Direction) {
+                    case "South":
+                        this.Direction = "East";
+                        break;
+                    case "North":
+                        this.Direction = "West";
+                        break;
+                    case "East":
+                        this.Direction = "North";
+                        break;
+                    case "West":
+                        this.Direction = "South";
+                        break;
+                    default:
+                        alert("Invalid Direction found in TurnLeft");
+                }
+            };
+
+            this.TurnRight= function () {
+                switch (this.Direction) {
+                    case "South":
+                        this.Direction = "West";
+                        break;
+                    case "North":
+                        this.Direction = "East";
+                        break;
+                    case "East":
+                        this.Direction = "South";
+                        break;
+                    case "West":
+                        this.Direction = "North";
+                        break;
+                    default:
+                        alert("Invalid Direction found in TurnRight");
+                }
+            };
+
+            this.Direction= "South";
+            this.MowForward= function () {
+                switch (this.Direction) {
+                    case "South":
+                        if (this.CurrentYPosition < 3 ) {
+                            this.CurrentYPosition++;
+                            this.lawn[this.CurrentXPosition][this.CurrentYPosition] = "Cut";
+                        }
+                        break;
+                    case "North":
+                        if (this.CurrentYPosition != 0 ) {
+                            this.CurrentYPosition--;
+                            this.lawn[this.CurrentXPosition][this.CurrentYPosition] = "Cut";
+                        }
+                        break;
+                    case "East":
+                        if (this.CurrentXPosition < 3 ) {
+                            this.CurrentXPosition++;
+                            this.lawn[this.CurrentXPosition][this.CurrentYPosition] = "Cut";
+                        }
+                        break;
+                    case "West":
+                        if (this.CurrentXPosition != 0 ) {
+                            this.CurrentXPosition--;
+                            this.lawn[this.CurrentXPosition][this.CurrentYPosition] = "Cut";
+                        }
+                        break;
+                    default:
+                        alert("Invalid Direction found in MowForward");
+                }
+            };
+
+            this.MowLawn = function () {
+                // DNA is a string of instructions (M,L,R).
+                for (var x = 0; x < this.DNA.length; x++) {
+                    var instruction = this.DNA.substring(x, x + 1);
+                    switch (instruction) {
+                        case "M":
+                            this.MowForward();
+                            break;
+                        case "L":
+                            this.TurnLeft();
+                            break;
+                        case "R":
+                            this.TurnRight();
+                            break;
+                        default:
+                            alert("Invalid DNA");
+                    }
+                }
+
+            };
+
+            this.EvaluateLawn =  function ()
+            {
+                for (var x = 0; x < 4; x++) {
+                    for (var y = 0; y < 4; y++) {
+                        if (this.lawn[x][y] == "Cut") {
+                            this.score++;
+                        }
+                    }
+                }
+            }
+
+            this.UncutGrass = function () {
+                for (var x = 0; x < 4; x++) {
+                    for (var y = 0; y < 4; y++) {
+                        this.lawn[x][y] = "Uncut";
+                    }
+                }
+            }
+
+            this.Reset = function () {
+                this.score = 1;
+                this.Direction = "South";
+                this.UncutGrass();
+                this.CurrentXPosition = 0;
+                this.CurrentYPosition = 0;
+            }
+        }
+
+        var Generation = function () {
+            this.bestSaved = 0;
+            this.size = 100;
+            this.winner = "";
+            this.mowers = new Array(this.size);
+            this.populateGeneration = function () {
+                for (var x = 0; x < this.size; x++) {
+                    this.mowers[x] = new LawnMower();
+                    this.mowers[x].DNA = this.GenerateDNA();
+                }
+            }
+            this.GenerateDNA = function () {
+                var returnValue = ""; 
+                var length = Math.floor(Math.random() * 20) + 1;
+                for (var x = 0; x < length; x++) {
+                    var allele = Math.floor(Math.random() * 4);
+                    switch (allele) {
+                        case 0:
+                            allele = "M";
+                            break;
+                        case 1:
+                            allele = "M";
+                            break;
+                        case 2:
+                            allele = "R";
+                            break;
+                        case 3:
+                            allele = "L";
+                            break;
+                        default:
+                            alert("Invalid allele " + allele);
+                    }
+                    returnValue = returnValue + allele;
+                }
+                return returnValue;
+            }
+
+            this.mowAllLawns = function () {
+                for (var x = 0; x < this.size; x++) {
+                    this.mowers[x].MowLawn();
+                    this.mowers[x].EvaluateLawn();
+                }
+            }
+
+            this.Mate = function (nextGeneration) {
+                var max = this.GetMaxScore();
+                var roulette = new Array();
+                var slots = 0;
+                var nextGenMowerId = 0;
+                for (var x = 0; x < this.size; x++) {
+                    for (var y = 0; y < this.mowers[x].score * this.mowers[x].score; y++) {
+                        roulette[slots] = this.mowers[x];
+                        slots++;
+                    }
+                }
+
+                for (var x = 0; x < this.size/2; x++) {
+                    var slot1 = Math.floor(Math.random() * slots);
+                    var slot2 = Math.floor(Math.random() * slots);
+                    var father = roulette[slot1];
+                    var mother = roulette[slot2];
+                    if (father.score == max && this.bestSaved == 0) {
+                        this.bestSaved = 1;
+                        nextGeneration.mowers[nextGenMowerId].DNA = father.DNA;
+                        nextGenMowerId++;
+                        return;
+                    }
+                    if (mother.score == max && this.bestSaved == 0) {
+                        this.bestSaved = 1;
+                        nextGeneration.mowers[nextGenMowerId].DNA = mother.DNA;
+                        nextGenMowerId++;
+                        return;
+                    }
+                    var lengthOfFathersDNA = father.DNA.length;
+                    var lengthOfMothersDNA = mother.DNA.length;
+                    var fathersSplicePoint1 = Math.floor(Math.random() * lengthOfFathersDNA);
+                    var mothersSplicePoint1 = Math.floor(Math.random() * lengthOfMothersDNA);
+                    var fathersSplicePoint2 = Math.floor(Math.random() * lengthOfFathersDNA);
+                    var mothersSplicePoint2 = Math.floor(Math.random() * lengthOfMothersDNA);
+                    var fathersSplicePointLeft;
+                    var fathersSplicePointRight;
+                    var mothersSplicePointLeft;
+                    var mothersSplicePointRight;
+
+                    if (fathersSplicePoint1 < fathersSplicePoint2) {
+                        fathersSplicePointLeft = fathersSplicePoint1;
+                        fathersSplicePointRight = fathersSplicePoint2;
+                    }
+                    else {
+                        fathersSplicePointLeft = fathersSplicePoint2;
+                        fathersSplicePointRight = fathersSplicePoint1;
+                    }
+
+                    if (mothersSplicePoint1 < mothersSplicePoint2) {
+                        mothersSplicePointLeft = mothersSplicePoint1;
+                        mothersSplicePointRight = mothersSplicePoint2;
+                    }
+                    else {
+                        mothersSplicePointLeft = mothersSplicePoint2;
+                        mothersSplicePointRight = mothersSplicePoint1;
+                    }
+
+                    var fathersLeft = father.DNA.substring(0, fathersSplicePointLeft);
+                    var fatheresMiddle = father.DNA.substring(fathersSplicePointLeft, fathersSplicePointRight);
+                    var fathersRight = father.DNA.substring(fathersSplicePointRight, lengthOfFathersDNA);
+                    var mothersLeft = mother.DNA.substring(0, mothersSplicePointLeft);
+                    var mothersMiddle = mother.DNA.substring(mothersSplicePointLeft, mothersSplicePointRight);
+                    var mothersRight = mother.DNA.substring(mothersSplicePointRight, lengthOfMothersDNA);
+
+                    nextGeneration.mowers[nextGenMowerId].DNA = fathersLeft + mothersMiddle + fathersRight;
+                    nextGenMowerId++;
+                    nextGeneration.mowers[nextGenMowerId].DNA = mothersLeft + fathersRight + mothersRight;
+                    nextGenMowerId++;                    
+                 }
+            }
+
+            this.GetMaxScore = function () {
+                var max = 0;
+                for (var x = 0; x < this.size; x++) {
+                    if (this.mowers[x].score > max) {
+                        max = this.mowers[x].score;
+                        this.winner = this.mowers[x];
+                    }
+                }
+                return max;
+            }
+            
+            this.GetAverageScore = function () {
+                var total = 0;
+                for (var x = 0; x < this.size; x++) {
+                    total = total + this.mowers[x].score;
+                }
+                return total / this.size;
+            }
+        }
+
+        
+
+        function Main() {
+            $("#A1").css("background-color", "green");
+
+            // Tests
+            /*
+            var mower = new LawnMower();
+            mower.DNA = "MLR";
+            mower.MowLawn();
+            if (mower.lawn[0][0] = "Cut" && mower.Direction=="South") {
+                alert("Pass");
+            }
+            else {
+                alert("Fail")
+            }
+            */
+
+            var generation = new Generation();
+            generation.populateGeneration();
+            var success = 0;
+            /*
+            for (var y = 0; y < 10000; y++) {
+                generation.mowAllLawns();
+                if (generation.GetMaxScore() > 15)
+                {
+                    alert("Best:" + generation.GetMaxScore() + " Average:" + generation.GetAverageScore() + " Length:" + generation.winner.DNA.length + " " + generation.winner.DNA +" in " + y  + " generations");
+                    success = 1;
+                    break;
+                }
+                var nextGeneration = new Generation();
+                nextGeneration.populateGeneration();
+                generation.Mate(nextGeneration);
+                generation = nextGeneration;
+            }
+            if (success == 0) {
+                alert("Solution not found");
+            }
+            */
+
+            var c = document.getElementById("lawn");
+            ctx = c.getContext("2d");
+            ctx.fillStyle = "#00FF00";
+            ctx.fillRect(0, 0, 40,40);
+            setTimeout("test()", 1000);
+            
+
+        }
+
+        function test() {
+            ctx.fillRect(0, 40, 40, 40);
+            setTimeout("test()", 1000);
+            ctx.fillRect(0, 80, 40, 40);
+        }
+
+        function drawLawn(direction) {
+
+        }
+        /*
+        ctx.fillRect(0, 0, 40, 40);
+        ctx.fillRect(0, 40, 40, 40);
+        ctx.fillRect(0, 80, 40, 40);
+        */
+
+    </script>
+</head>
+<body>
+    <table>
+        <tr>
+            <td><div id="A1" class="Lawn"></div></td>
+            <td><div id="B1" class="Lawn"></div></td>
+            <td><div id="C1" class="Lawn"></div></td>
+            <td><div id="D1" class="Lawn"></div></td>
+        </tr>
+         <tr>
+            <td><div id="A2" class="Lawn"></div></td>
+            <td><div id="B2" class="Lawn"></div></td>
+            <td><div id="C2" class="Lawn"></div></td>
+            <td><div id="D2" class="Lawn"></div></td>
+        </tr>
+         <tr>
+            <td><div id="A3" class="Lawn"></div></td>
+            <td><div id="B3" class="Lawn"></div></td>
+            <td><div id="C3" class="Lawn"></div></td>
+            <td><div id="D3" class="Lawn"></div></td>
+        </tr>
+         <tr>
+            <td><div id="A4" class="Lawn"></div></td>
+            <td><div id="B4" class="Lawn"></div></td>
+            <td><div id="C4" class="Lawn"></div></td>
+            <td><div id="D4" class="Lawn"></div></td>
+        </tr>
+    </table>
+    <canvas id="lawn" width="160" height="160" style="border:1px solid #000000;"></canvas>
+</body>
+</html>
