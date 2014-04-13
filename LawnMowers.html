@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>LawnMowers</title>
+ 
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () { Main(); });
+        var worker = new Worker('WebWorker.js');
+
+
+        worker.addEventListener('message', function (e) {
+            // console.log('Worker said: ', e.data);
+            if (e.data == "Complete") {
+                //alert("Best:" + generation.GetMaxScore() + " Average:" + generation.GetAverageScore() + " Length:" + generation.winner.DNA.length + " " + generation.winner.DNA + " in " + y + " generations");
+            }
+            else {
+                ProcessDNA(e.data);
+                var div = document.getElementById("DNA");
+                div.innerText = div.InnerText + e.data;
+            }
+        }, false);
+        
+        worker.postMessage('Start');
+
+        function Main() {
+            var c = document.getElementById("lawn");
+            ctx = c.getContext("2d");
+            ctx.fillStyle = "#00FF00";
+            ctx.fillRect(0, 0, 40, 40);
+        }
+
+        greenLawn = function () {
+            this.direction = "South";
+            this.x = 0;
+            this.y = 0;
+
+            this.mowSquare = function () {
+                if (this.direction == "North") {
+                    if (this.y == 0)
+                        return;
+                    ctx.fillRect(this.x, this.y, this.x, this.y - 40);
+                    this.y = this.y - 40;
+                }
+                if (this.direction == "South") {
+                    if (this.y == 160)
+                        return;
+                    ctx.fillRect(this.x, this.y, this.x, this.y + 40);
+                    this.y = this.y + 40;
+                }
+                if (this.direction == "East") {
+                    if (this.x == 160)
+                        return;
+                    ctx.fillRect(this.x, this.y, this.x + 40, this.y)
+                    this.x = this.x + 40;
+                }
+                if (this.direction == "West") {
+                    if (this.x == 0)
+                        return;
+                    ctx.fillRect(this.x, this.y, this.x - 40, this.y)
+                    this.x = this.x - 40;
+                }
+            }
+
+            this.turnRight = function () {
+                switch (this.direction) {
+                    case "North":
+                        this.direction = "East";
+                        break;
+                    case "South":
+                        this.direction = "West";
+                        break;
+                    case "East":
+                        this.direction = "South";
+                        break;
+                    case "West":
+                        this.direction = "North";
+                        break;
+                    default:
+                        alert("Invalid direction");
+                }
+            }
+
+                this.turnLeft = function () {
+                    switch (this.direction) {
+                        case "North":
+                            this.direction = "West";
+                            break;
+                        case "South":
+                            this.direction = "East";
+                            break;
+                        case "East":
+                            this.direction = "North";
+                            break;
+                        case "West":
+                            this.direction = "South";
+                            break;
+                        default:
+                            alert("Invalid direction");
+                    }
+                } // End turnLeft
+
+            
+        }
+
+        function ProcessDNA(DNA) {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, 160, 160);
+            ctx.fillStyle = "#00FF00";
+            var lawn = new greenLawn();
+            for (var x = 1; x < DNA.length; x++) {
+                var strand = DNA.substring(x, x+1);
+                switch (strand) {
+                    case "M":
+                        lawn.mowSquare();
+                        break;
+                    case "R":
+                        lawn.turnRight();
+                        break;
+                    case "L":
+                        lawn.turnLeft();
+                        break;
+                    default:
+                        alert("Invalid strand");
+                }
+            }
+        }
+
+
+
+    </script>
+</head>
+<body>
+    <canvas id="lawn" width="160" height="160" style="border:1px solid #000000;"></canvas>
+    <div id="DNA">M</div>
+</body>
+</html>
